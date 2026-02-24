@@ -276,7 +276,7 @@ var barchart_and_map = (function () {
 			//end classed of group rect
 			countyLayer.setStyle(function (feature) {
 				var style = {};
-				if (feature.properties.NAME == currentCounty) {
+				if (feature.properties && feature.properties.NAME == currentCounty) {
 					style.weight = 4;
 				} else {
 					style.weight = 1;
@@ -417,7 +417,10 @@ var barchart_and_map = (function () {
 			//create circle markers for each zone centroid
 			for (var i = 0; i < zoneTiles.features.length; i++) {
 				var feature = zoneTiles.features[i];
-				var featureZoneData = zoneData[feature.properties.id];
+				// derive id from either id or fallback property
+			var fId = (feature.properties && feature.properties.id !== undefined) ? feature.properties.id : (feature.properties ? feature.properties.MTAZ10 : undefined);
+				if (fId !== undefined) fId = fId + "";
+				var featureZoneData = zoneData[fId];
 				if (featureZoneData == undefined) { //missing data for this zone
 				} else {
 					//WARNING: center coordinates seem to have lat and lng reversed!
@@ -451,20 +454,43 @@ var barchart_and_map = (function () {
 				"use strict";
 				console.log("cb_2015_us_county_500k GEORGIA.json success");
 				//http://leafletjs.com/reference.html#tilelayer
-				countyLayer = L.geoJson(countyTiles, {
-					//keep only counties that we have data for
-					filter: function (feature) {
-						return countiesSet.has(feature.properties.NAME);
-					},
-					updateWhenIdle: true,
-					unloadInvisibleFiles: true,
-					reuseTiles: true,
-					opacity: 1.0,
-					style: styleCountyGeoJSONLayer,
-					onEachFeature: onEachCounty
+			
+			// Handle both FeatureCollection and GeometryCollection formats
+			// Check if this is a GeometryCollection (no features property) vs FeatureCollection
+			var hasProperties = false;
+			if (countyTiles.features && countyTiles.features.length > 0) {
+				// FeatureCollection: check if features have properties
+				hasProperties = countyTiles.features.some(function(f) {
+					return f.properties && f.properties.NAME;
 				});
-				var allCountyBounds = countyLayer.getBounds();
+			}
+			
+			var geoJsonOptions = {
+				updateWhenIdle: true,
+				unloadInvisibleFiles: true,
+				reuseTiles: true,
+				opacity: 1.0,
+				style: styleCountyGeoJSONLayer,
+				onEachFeature: onEachCounty
+			};
+			
+			// Only add filter if properties exist and contain NAME
+			if (hasProperties) {
+				geoJsonOptions.filter = function (feature) {
+					return feature.properties && countiesSet.has(feature.properties.NAME);
+				};
+			} else {
+				console.log("County GeoJSON has no NAME properties; loading all geometries without filtering");
+			}
+			
+			countyLayer = L.geoJson(countyTiles, geoJsonOptions);
+			var allCountyBounds = countyLayer.getBounds();
+			
+			// Only fit bounds if we have valid bounds
+			if (allCountyBounds.isValid && allCountyBounds.isValid()) {
 				map.fitBounds(allCountyBounds);
+			}
+			
 				zoneDataLayer.addTo(map);
 				countyLayer.addTo(map);
 			}).success(function () {
@@ -485,7 +511,7 @@ var barchart_and_map = (function () {
 			//end on each County
 			function mouseoverCounty(e) {
 				var layer = e.target;
-				changeCurrentCounty(layer.feature.properties.NAME);
+				changeCurrentCounty(layer.feature && layer.feature.properties && layer.feature.properties.NAME ? layer.feature.properties.NAME : '');
 			}
 		});
 		//end geoJson of zone layer

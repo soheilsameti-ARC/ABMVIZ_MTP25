@@ -91,9 +91,18 @@ var sunburst = (function () {
 			//assign each node a color. Also assign each node a unique id since depth and name may not be unique
 			maxDepth = 0;
 			nodeData.forEach(function (d, i) {
-				maxDepth = Math.max(d.depth+1, maxDepth);
+				maxDepth = Math.max(d.depth + 1, maxDepth);
 				if (d.depth == 1) {
 					d.luminance = d3.scale.sqrt().domain([0, d.value]).clamp(true).range([90, 20]);
+					// Ensure a baseColor exists for this top-level node. When re-creating visualization
+					// d.baseColor may be undefined (node objects are new), so fall back to the stored color map.
+					if (!d.baseColor) {
+						if (colors[d.uniqueId]) {
+							d.baseColor = d3.lab(colors[d.uniqueId]);
+						} else {
+							d.baseColor = d3.lab("#d3d3d3");
+						}
+					}
 					d.baseColor.l = d.luminance(d.value);
 					colors[d.uniqueId] = d.baseColor;
 				}
@@ -105,8 +114,11 @@ var sunburst = (function () {
 					var p = d;
 					while (p.depth > 1) p = p.parent;
 					var topAncestor = p;
-					var c = d3.lab(topAncestor.baseColor);
-					c.l = topAncestor.luminance(d.value);
+					// Ensure topAncestor has a baseColor; fall back to the colors map if necessary.
+					var base = topAncestor.baseColor || (colors[topAncestor.uniqueId] ? d3.lab(colors[topAncestor.uniqueId]) : d3.lab("#d3d3d3"));
+					var luminanceFn = topAncestor.luminance || (function () { return base.l || 50; });
+					var c = d3.lab(base);
+					c.l = (typeof luminanceFn === 'function') ? luminanceFn(d.value) : (base.l || 50);
 					colors[d.uniqueId] = c;
 				}
 			});

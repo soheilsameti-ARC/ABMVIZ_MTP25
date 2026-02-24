@@ -6,10 +6,12 @@
     var max = -10000000;
     Object.keys(data).forEach(function(o) {
       Object.keys(data[o]).forEach(function(d) {
-        // Fix max of bidirectional flows
-        max = Math.max(data[o][d][currentVar] + data[d][o][currentVar], max);
-      })
-    })
+        // Fix max of bidirectional flows (safe access when reverse pair missing)
+        var a = (data[o] && data[o][d] && data[o][d][currentVar]) || 0;
+        var b = (data[d] && data[d][o] && data[d][o][currentVar]) || 0;
+        max = Math.max(a + b, max);
+      });
+    });
     return max;
   }
 
@@ -25,12 +27,26 @@
     d3.queue()
       .defer(d3.csv, '../data/' + abmviz_utilities.GetURLParameter('scenario') + '/Desirelines.csv')
       .defer(d3.json, '../data/SuperDistricts.topojson')
-      .defer(d3.json, '../data/SuperDistrictsDesirelines.topojson')
-      .await(function(err, csv, geo, desirelines) {
-        // If files do not exist, remove this div
+      // try the plus‑210 desireline file first, fallback to original
+      .defer(function(cb) {
+        d3.json('../data/SuperDistrictsDesirelines_plus210.topojson', function(err,data) {
+          if (err) {
+            d3.json('../data/SuperDistrictsDesirelines.topojson', cb);
+          } else {
+            cb(null, data);
+          }
+        });
+      })
+      // fallback county geometry (contains standard county names such as Cherokee)
+      .defer(d3.json, '../data/cb_2015_us_county_500k_GEORGIA.json')
+      .await(function(err, csv, geo, desirelines, countiesGeo) {
+        // If any of the files failed to load, abort early
+        // (the old code removed the div but then kept running which
+        // led to TypeErrors when `desirelines` was undefined).
         if (err) {
-          console.log('Error');
+          console.log('Error loading data:', err);
           d3.select('#' + divID).remove();
+          return;          // stop further execution
         }
 
         // Build object from csv
@@ -62,12 +78,66 @@
           }
         });  // end csv.forEach()
 
-        // Build superdistrict id to name lookup
+        // Build superdistrict id to name lookup (handle different property names)
         var nameByID = {};
-        // Loop through all polygons (note i does not equal id)
-        for(var i = 0; i < geo.objects.superdistricts.geometries.length; i += 1) {
-            var id = geo.objects.superdistricts.geometries[i].properties.id;
-            nameByID[id] = geo.objects.superdistricts.geometries[i].properties.name;
+        // Determine which object key contains the polygons (some files use
+        // 'superdistricts', others use 'transit')
+        var superKey = (geo.objects && geo.objects.superdistricts) ? 'superdistricts' : (geo.objects ? Object.keys(geo.objects)[0] : null);
+        var superGeometries = [];
+        if (superKey && geo.objects[superKey] && geo.objects[superKey].geometries) {
+          superGeometries = geo.objects[superKey].geometries;
+          for(var i = 0; i < superGeometries.length; i += 1) {
+            var prop = superGeometries[i].properties || {};
+            var id = prop.id !== undefined ? prop.id : (prop.LOGRECNO || prop.GEOID || prop.OBJECTID);
+            var name = prop.name !== undefined ? prop.name : prop.NAME;
+            if (id !== undefined) nameByID[id] = name;
+            if (typeof name !== 'undefined') nameByID[i + 1] = name;
+          }
+        }
+
+        // If Dawson is missing from the superdistricts, try to find a county
+        // geometry in the fallback `countiesGeo` that matches Dawson by
+        // centroid proximity, then inject it so desirelines resolve.
+        function centroidOfPolygon(coords) {
+          // coords -> first ring expected: [[lon,lat],...]
+          var ring = coords && coords[0] || [];
+          var sx = 0, sy = 0, n = 0;
+          for (var k = 0; k < ring.length; k++) {
+            sx += ring[k][0]; sy += ring[k][1]; n += 1;
+          }
+          return n ? [sx / n, sy / n] : [0,0];
+        }
+        function findCountyGeometryByCentroid(countiesGeo, targetLon, targetLat) {
+          if (!countiesGeo) return null;
+          var geoms = countiesGeo.features ? countiesGeo.features.map(function(f){return f.geometry;}) : (countiesGeo.geometries || []);
+          var best = null, bestDist = Infinity;
+          for (var j = 0; j < geoms.length; j++) {
+            var g = geoms[j];
+            if (!g) continue;
+            var coords = g.coordinates;
+            if (!coords) continue;
+            var c = centroidOfPolygon(coords);
+            var dx = c[0] - targetLon, dy = c[1] - targetLat;
+            var d2 = dx*dx + dy*dy;
+            if (d2 < bestDist) { bestDist = d2; best = g; }
+          }
+          return best;
+        }
+        // Only attempt injection if Dawson is not present
+        var hasDawson = Object.keys(nameByID).some(function(k){ return (''+nameByID[k]).toLowerCase().indexOf('dawson') !== -1; });
+        if (!hasDawson && countiesGeo) {
+          // approximate Dawson county centroid (lon, lat)
+          var targetLon = -84.14, targetLat = 34.43;
+          var countyGeom = findCountyGeometryByCentroid(countiesGeo, targetLon, targetLat);
+          if (countyGeom) {
+            // Create a feature-like object to be appended later to the features
+            var dawsonFeature = { type: 'Feature', geometry: countyGeom, properties: { NAME: 'Dawson', LOGRECNO: 5874, GEOID: 'Dawson' } };
+            // Remember to inject into the feature list before drawing
+            // We'll attach it to a temporary variable `__injectedDawsonFeature`.
+            geo.__injectedDawsonFeature = dawsonFeature;
+            // Also expose a name mapping for the next sequential index
+            nameByID[Object.keys(nameByID).length + 1] = 'Dawson';
+          }
         }
 
         // Projection
@@ -78,9 +148,18 @@
         var transform = d3.geoTransform({point: projectPoint}),
             path = d3.geoPath().projection(transform);
 
+        // Build a FeatureCollection for the superdistricts/transit object
+        var superFeatureCollection = { type: 'FeatureCollection', features: [] };
+        if (superKey && geo.objects[superKey]) {
+          superFeatureCollection = topojson.feature(geo, geo.objects[superKey]);
+          if (geo.__injectedDawsonFeature) {
+            superFeatureCollection.features.push(geo.__injectedDawsonFeature);
+          }
+        }
+
         // Update the path using the current transform
         function updateTransform() {
-          var bounds = path.bounds(topojson.feature(geo, geo.objects.superdistricts)),
+          var bounds = path.bounds(superFeatureCollection),
               buffer = 250,
               topLeft = [bounds[0][0]-buffer,bounds[0][1]-buffer],
               bottomRight = [bounds[1][0]+buffer,bounds[1][1]+buffer];
@@ -119,7 +198,7 @@
 
         // Draw background super districts
         g.selectAll('.mappolygons')
-          .data(topojson.feature(geo, geo.objects.superdistricts).features)
+          .data(superFeatureCollection.features)
           .enter().append('path')
             .attr('class', 'mappolygons')
             .attr('stroke', 'lightgray')
@@ -131,7 +210,8 @@
               tooltip.transition()
                 .duration(200)
                 .style('opacity', 1);
-              tooltip.html(d.properties.name);
+              var dispName = d.properties.name !== undefined ? d.properties.name : d.properties.NAME;
+              tooltip.html(dispName);
             })
             .on('mousemove', function () {
               tooltip.style('top', (d3.event.pageY - 16) + 'px')
@@ -144,18 +224,59 @@
                 .style('opacity', 0);
             });
 
-        // Draw background counties on top of super districts
+        // Draw background counties on top of super districts. Use counties in
+        // the SuperDistricts topojson if present, otherwise fall back to the
+        // standalone county GeoJSON which contains canonical county names like Cherokee.
+        var countyFeatures = [];
+        if (geo.objects && geo.objects.counties) {
+          countyFeatures = topojson.feature(geo, geo.objects.counties).features;
+        } else if (countiesGeo) {
+          if (countiesGeo.features) {
+            countyFeatures = countiesGeo.features;
+          } else if (countiesGeo.type === 'GeometryCollection' && countiesGeo.geometries) {
+            countyFeatures = countiesGeo.geometries.map(function(g) {
+              return { type: 'Feature', geometry: g, properties: g.properties || {} };
+            });
+          }
+        }
         g.selectAll('.mapcounties')
-          .data(topojson.feature(geo, geo.objects.counties).features)
+          .data(countyFeatures)
           .enter().append('path')
             .attr('fill', 'none')
             .attr('stroke', '#000')
             .attr('class', 'mappolygons mapcounties')
             .attr('d', path);
 
-        // Draw desire lines w/ zero thickness
+        // Draw desire lines w/ zero thickness.  The desired dataset
+        // may be a TopoJSON (old workflow) or simply a GeoJSON
+        // FeatureCollection (our new python export).  `topojson.feature`
+        // expects a true topology with `objects`/`arcs`; if we pass it a
+        // plain FeatureCollection it blows up with the type of error the
+        // user reported.
+        var desireFeatures = [];
+        if (desirelines) {
+          // case 1: plain GeoJSON FeatureCollection
+          if (desirelines.type === 'FeatureCollection') {
+              desireFeatures = desirelines.features;
+          } else if (desirelines.objects && desirelines.objects.desirelines) {
+              var obj = desirelines.objects.desirelines;
+              // if the geometries look like simple GeoJSON (contain coordinates),
+              // just wrap them as features without calling topojson.feature
+              if (obj.type === 'GeometryCollection' && obj.geometries && obj.geometries.length > 0 && obj.geometries[0].coordinates) {
+                  desireFeatures = obj.geometries.map(function(g) {
+                      return { type: 'Feature', geometry: g, properties: g.properties || {} };
+                  });
+              } else {
+                  // normal topojson conversion will throw if arcs missing
+                  desireFeatures = topojson.feature(desirelines, obj).features;
+              }
+          } else {
+              console.log('desirelines object has unexpected structure');
+          }
+        }
+
         g.selectAll('.desirelines')
-          .data(topojson.feature(desirelines, desirelines.objects.desirelines).features)
+          .data(desireFeatures)
           .enter().append('path')
             .attr('class', 'desirelines')
             .attr('stroke', '#3182bd')
@@ -167,13 +288,13 @@
               tooltip.transition()
                 .duration(200)
                 .style('opacity', 1);
+              var o = d.properties.o, dest = d.properties.d;
+              var v1 = (od[o] && od[o][dest] && od[o][dest][dataColumn]) || 0;
+              var v2 = (od[dest] && od[dest][o] && od[dest][o][dataColumn]) || 0;
               tooltip.html(
-                nameByID[d.properties.o] + ' → ' + nameByID[d.properties.d] + ' ' +
-                  d3.format(',')(od[d.properties.o][d.properties.d][dataColumn]) +
-                  '<br/>' +
-                nameByID[d.properties.d] + ' → ' + nameByID[d.properties.o] + ' ' +
-                  d3.format(',')(od[d.properties.d][d.properties.o][dataColumn])
-                );
+                nameByID[o] + ' → ' + nameByID[dest] + ' ' + d3.format(',')(v1) + '<br/>' +
+                nameByID[dest] + ' → ' + nameByID[o] + ' ' + d3.format(',')(v2)
+              );
             })
             .on('mousemove', function () {
               tooltip.style('top', (d3.event.pageY - 16) + 'px')
@@ -201,14 +322,18 @@
           d3.selectAll('.desirelines')
             .transition().duration(300)
             .style('stroke-width', function(d) {
-              // Sum bidirectional
-              return w(od[d.properties.o][d.properties.d][dataColumn] +
-                       od[d.properties.d][d.properties.o][dataColumn]);
+              // Sum bidirectional (safe access)
+              var o = d.properties.o, dest = d.properties.d;
+              var a = (od[o] && od[o][dest] && od[o][dest][dataColumn]) || 0;
+              var b = (od[dest] && od[dest][o] && od[dest][o][dataColumn]) || 0;
+              return w(a + b);
             })
             .style('stroke-opacity', function(d) {
-              // Sum bidirectional
-              return op(od[d.properties.o][d.properties.d][dataColumn] +
-                        od[d.properties.d][d.properties.o][dataColumn]);
+              // Sum bidirectional (safe access)
+              var o = d.properties.o, dest = d.properties.d;
+              var a = (od[o] && od[o][dest] && od[o][dest][dataColumn]) || 0;
+              var b = (od[dest] && od[dest][o] && od[dest][o][dataColumn]) || 0;
+              return op(a + b);
             });
         }
         updateDesireLines();

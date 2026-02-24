@@ -79,7 +79,8 @@ var three3d = (function three3dFunction() {
 				var quantity = d[QUANTITY_COLUMN] = +d[QUANTITY_COLUMN];
 				//convert periods to integers by removing all non-numeric characters
 				var period = d[PERIOD_COLUMN] = parseInt(d[PERIOD_COLUMN].replace(/\D/g, ''));
-				var zone = d[ZONE_COLUMN] = +d[ZONE_COLUMN];
+					// ensure zone ID remains text (some datasets use alphanumeric values)
+					var zone = d[ZONE_COLUMN] = d[ZONE_COLUMN] + "";
 				if (zoneData[zone] == undefined) {
 					zoneDatum = zoneData[zone] = {
 						min: 100000000,
@@ -173,7 +174,9 @@ var three3d = (function three3dFunction() {
 		"use strict";
 		var color = naColor;
 		var periodQuantity = 0;
-		var featureId = feature.properties.id;
+		// use id property if present; otherwise use alternate name such as MTAZ10
+		var featureId = feature.properties.id !== undefined ? feature.properties.id : feature.properties.MTAZ10;
+		if (featureId !== undefined) featureId = featureId + ""; // coerce to string
 		if (zoneData[featureId] != undefined) {
 			var zoneDatum = zoneData[featureId];
 			//possible that even if data for zone exists, could be missing this particular period
@@ -236,7 +239,9 @@ var three3d = (function three3dFunction() {
 			zoneGeoJSON = zoneTiles;
 
 			zoneGeoJSON.features.forEach(function (feature) {
-				var id = feature.properties.id;
+				// pick the zone identifier, fallback to MTAZ10 if necessary
+				var id = feature.properties.id !== undefined ? feature.properties.id : feature.properties.MTAZ10;
+				if (id !== undefined) id = id + ""; // string
 				var zoneDatum = zoneData[id];
 				var latLngs = feature.geometry.coordinates[0];
 				var centroid = L.latLngBounds(latLngs).getCenter();
