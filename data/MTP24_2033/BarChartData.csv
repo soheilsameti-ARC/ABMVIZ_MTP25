@@ -1,0 +1,23 @@
+Person Group,Day Pattern,Count
+Child too young for school,Home,120339
+Child too young for school,Mandatory,193734
+Child too young for school,Non-mandatory,178700
+Full-time worker,Home,369359
+Full-time worker,Mandatory,1897354
+Full-time worker,Non-mandatory,331148
+Non-worker,Home,360937
+Non-worker,Non-mandatory,575312
+Part-time worker,Home,76025
+Part-time worker,Mandatory,294291
+Part-time worker,Non-mandatory,171338
+Retired,Home,492839
+Retired,Non-mandatory,522426
+Student of driving age,Home,25297
+Student of driving age,Mandatory,196956
+Student of driving age,Non-mandatory,18890
+Student of non-driving age,Home,67477
+Student of non-driving age,Mandatory,698483
+Student of non-driving age,Non-mandatory,66541
+University student,Home,49624
+University student,Mandatory,148231
+University student,Non-mandatory,58134
