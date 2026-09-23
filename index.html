@@ -4,28 +4,163 @@
 	<title>ARC ABMVIZ</title>
 	<link rel="shortcut icon" href="img/arc_logo.ico">
 	<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="src/overview.css" />
 	<script src="bower_components/jquery/dist/jquery.min.js"></script>
 	<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 	<script src="bower_components/d3/d3.min.js"></script>
+	<script defer src="bower_components/d3v4/d3.min.js"></script>
+	<script defer src="abmviz_utilities.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 	<script>
 		d3.csv("data/scenarios.csv", function (data) {
 			$.each(data, function (key, value) {
 				// keep the link target as the scenario key but show only the Description text
-				$("#scenarios").append("<li><a href='src/index.html?scenario=" + value["Scenario"] + "'>" + value["Description"] + "</a></li>");
+				$("#scenarios").append("<li role='presentation'><a href='src/index.html?scenario=" + value["Scenario"] + "'>" + value["Description"] + "</a></li>");
 			});
 		});
 	</script>
+	<script defer src="src/overview.js"></script>
+	<style>
+		#scenarios {
+			font-weight: bold;
+			font-size: 105%;
+		}
+		#scenarios > li > a {
+			color: #222222;
+		}
+		#scenarios > li > a:hover,
+		#scenarios > li > a:focus {
+			color: white;
+			background-color: #222222;
+			border-bottom: 7px inset #E09D15;
+		}
+	</style>
 </head>
 
 <body>
 	<nav class="navbar navbar-inverse navbar-fixed-top">
 		<div class="navbar-header">
-			<a href="http://www.atlantaregional.com" style="padding-left:1em;padding-top:1.1em;margin-right:-.5em;" class="pull-left" target="_blank"><img width="40" height="17" src="img/arc_logo.png"></a> <a class="navbar-brand" href="#">ABMVIZ</a> </div>
+			<a href="http://www.atlantaregional.org" style="padding-left:1em;padding-top:1.1em;margin-right:-.5em;" class="pull-left" target="_blank"><img width="40" height="17" src="img/arc_logo.png"></a> <a class="navbar-brand" href="#">ABMVIZ</a> </div>
 	</nav>
-	<div style="margin:5em;">
-		<h3>Please select a scenario for visualization</h3>
-	 	 <ul id="scenarios"> </ul>
+
+	<div style="padding-top:4.5em;">
+		<ul class="nav nav-tabs nav-justified" id="scenarios" role="tablist"></ul>
+
+		<div id="overview-root" class="overview-viz-root">
+			<div class="overview-header">Regional Travel Demand Overview</div>
+			<div class="overview-subhead">Total daily person trips across the MTP24 horizon years</div>
+			<div class="overview-note">This view summarizes travel demand (trip volume) from the activity-based model. Roadway performance metrics such as speed are not part of the current model outputs.</div>
+
+			<div class="row" id="overview-kpis"></div>
+
+			<div class="overview-chart-card">
+				<div class="overview-chart-title">Total Trip Volume by Horizon Year</div>
+				<div class="overview-chart-subtitle">All modes combined. Hover a point for the mode breakdown.</div>
+				<svg id="overview-chart" class="overview-chart-svg"></svg>
+
+				<div class="overview-table-toggle">
+					<label>
+						<input type="checkbox" id="overview-table-toggle-input"> Show data table
+					</label>
+				</div>
+				<div class="overview-table-container hidden-table" id="overview-table-container">
+					<table id="overview-table" class="table table-striped table-condensed">
+						<thead>
+							<tr>
+								<th>Scenario</th>
+								<th class="ov-num">Auto</th>
+								<th class="ov-num">Transit</th>
+								<th class="ov-num">Walk/Bike</th>
+								<th class="ov-num">School Bus</th>
+								<th class="ov-num">Total</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="overview-chart-card">
+				<div class="overview-chart-title">Trip Volume by Time Period</div>
+				<div class="overview-chart-subtitle">Average trips per hour within each standard travel-model time period (Early AM, AM Peak, Midday, PM Peak, Evening), from the ABM trip list (depart_period). Periods span different lengths (Midday is 6 hours, PM Peak is 4), so rate - not raw period total - is what's comparable.</div>
+				<div class="overview-chart-caveat">
+					<div>Note: School bus trips are included in these totals. School bus departures are tightly concentrated around 7 AM (school bell times), which adds a sharp spike that skews the region's daily peak toward the AM period rather than the PM period.</div>
+					<div>Note: Truck and commercial vehicle volumes are not computed by hour in this ABM - the network model only outputs them as daily totals - so they are not included in these totals.</div>
+				</div>
+				<div class="overview-legend" id="overview-period-legend"></div>
+				<svg id="overview-period-chart" class="overview-chart-svg"></svg>
+			</div>
+
+			<div class="overview-chart-card">
+				<div class="overview-chart-title">Trip Volume by Time of Day</div>
+				<div class="overview-chart-subtitle">Trip departures by half-hour period, from the ABM trip list (depart_period), across all MTP24 horizon years.</div>
+				<div class="overview-chart-caveat">
+					<div>Note: School bus trips are included in these totals. School bus departures are tightly concentrated around 7 AM (school bell times), which adds a sharp spike that skews the region's daily peak toward the AM period rather than the PM period.</div>
+					<div>Note: Truck and commercial vehicle volumes are not computed by hour in this ABM - the network model only outputs them as daily totals - so they are not included in these totals.</div>
+				</div>
+				<div class="overview-legend" id="overview-hourly-legend"></div>
+				<svg id="overview-hourly-chart" class="overview-chart-svg"></svg>
+
+				<div class="overview-hourly-controls">
+					<label for="overview-hourly-table-scenario">Scenario:</label>
+					<select id="overview-hourly-table-scenario" class="form-control"></select>
+				</div>
+				<div class="overview-table-toggle">
+					<label>
+						<input type="checkbox" id="overview-hourly-table-toggle-input"> Show trips by mode, by hour
+					</label>
+				</div>
+				<div class="overview-table-container hidden-table" id="overview-hourly-table-container">
+					<table id="overview-hourly-table" class="table table-striped table-condensed">
+						<thead>
+							<tr>
+								<th>Hour</th>
+								<th class="ov-num">Auto</th>
+								<th class="ov-num">Transit</th>
+								<th class="ov-num">Walk/Bike</th>
+								<th class="ov-num">School Bus</th>
+								<th class="ov-num">Total</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="overview-chart-card">
+				<div class="overview-chart-title">Auto Vehicle Trips by Time of Day</div>
+				<div class="overview-chart-subtitle">Vehicle trips (not riders), by hour of day, across all MTP24 horizon years. Derived from the ABM trip list by collapsing carpool rows sharing the same household, tour, time, and origin/destination back to one vehicle. Transit and school bus vehicle counts aren't in this data, so this view is Auto only (drive-alone, carpool, and TNC).</div>
+				<div class="overview-chart-caveat">Note: Truck and commercial vehicle volumes are not computed by hour in this ABM - the network model only outputs them as daily totals - so they are not included here. This view is passenger vehicles only (drive-alone, carpool, TNC).</div>
+				<div class="overview-legend" id="overview-vehicle-legend"></div>
+				<svg id="overview-vehicle-chart" class="overview-chart-svg"></svg>
+
+				<div class="overview-hourly-controls">
+					<label for="overview-vehicle-table-scenario">Scenario:</label>
+					<select id="overview-vehicle-table-scenario" class="form-control"></select>
+				</div>
+				<div class="overview-table-toggle">
+					<label>
+						<input type="checkbox" id="overview-vehicle-table-toggle-input"> Show vehicle trips by hour
+					</label>
+				</div>
+				<div class="overview-table-container hidden-table" id="overview-vehicle-table-container">
+					<table id="overview-vehicle-table" class="table table-striped table-condensed">
+						<thead>
+							<tr>
+								<th>Hour</th>
+								<th class="ov-num">Vehicle Trips</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+
+			<div id="overview-tooltip" class="overview-tooltip"></div>
+			<div id="overview-hourly-tooltip" class="overview-tooltip"></div>
+			<div id="overview-period-tooltip" class="overview-tooltip"></div>
+			<div id="overview-vehicle-tooltip" class="overview-tooltip"></div>
+		</div>
 	</div>
 
 </body>

@@ -1,0 +1,45 @@
+.countyOdInput {
+  margin-bottom: 10px;
+}
+
+#countyOdSlider {
+  border: 0;
+  width: 100%;
+}
+
+#countyOdTooltip {
+  position: absolute;
+  text-align: center;
+  min-width: 60px;
+  min-height: 23px;
+  padding: 5px 10px;
+  font: 12px sans-serif;
+  background: #000;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+#countyOdMap {
+  min-height: 700px;
+}
+
+#countyOdTableContainer {
+  min-height: 700px;
+}
+
+#countyOdTableContainer .table-responsive {
+  max-height: 640px;
+  overflow: auto;
+}
+
+#countyOdTableContainer th,
+#countyOdTableContainer td {
+  white-space: nowrap;
+}
+
+.county-desirelines {
+  fill: none;
+}

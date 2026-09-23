@@ -176,6 +176,11 @@
         }
 
         // Create map
+        if (!document.getElementById(containerID)) {
+          console.warn('OD map container not found, skipping OD map initialization:', containerID);
+          return;
+        }
+
         var map = L.map(containerID).setView([33.792902, -84.349885], 9);
         L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
           attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',

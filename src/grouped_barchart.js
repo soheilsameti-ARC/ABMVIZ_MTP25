@@ -26,7 +26,19 @@ var grouped_barchart = (function () {
 	var showPercentages = false;
 	var barsWrapRectId = "grouped-barchart-barsWrapRectRSG"
 	var barsWrapRectSelector = "#" + barsWrapRectId;
-	$("#scenario-header").html("Scenario " + abmviz_utilities.GetURLParameter("scenario"));
+	// Load Header from scenarios.csv for scenario-header display
+	d3.csv("../data/scenarios.csv", function(error, data) {
+		if (error) throw error;
+		var currentScenario = abmviz_utilities.GetURLParameter("scenario");
+		var scenarioData = data.find(function(row) {
+			return row.Scenario === currentScenario;
+		});
+		if (scenarioData) {
+			$("#scenario-header").html(scenarioData.Header);
+		} else {
+			$("#scenario-header").html("Scenario " + currentScenario);
+		}
+	});
 	//start off chain of initialization by reading in the data	
 	function readInDataCallback() {
 		setDataSpecificDOM();
