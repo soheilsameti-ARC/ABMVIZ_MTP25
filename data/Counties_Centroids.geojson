@@ -1,0 +1,28 @@
+{
+"type": "FeatureCollection",
+"name": "Counties_Centroids",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "FIPS": 13121.0, "county": "FULTON" }, "geometry": { "type": "Point", "coordinates": [ -84.467627, 33.789892 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13089.0, "county": "DEKALB" }, "geometry": { "type": "Point", "coordinates": [ -84.226356, 33.77148 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13067.0, "county": "COBB" }, "geometry": { "type": "Point", "coordinates": [ -84.576684, 33.941426 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13135.0, "county": "GWINNETT" }, "geometry": { "type": "Point", "coordinates": [ -84.023657, 33.961676 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13063.0, "county": "CLAYTON" }, "geometry": { "type": "Point", "coordinates": [ -84.357684, 33.541836 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13057.0, "county": "CHEROKEE" }, "geometry": { "type": "Point", "coordinates": [ -84.476236, 34.243896 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13117.0, "county": "FORSYTH" }, "geometry": { "type": "Point", "coordinates": [ -84.125061, 34.225486 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13223.0, "county": "PAULDING" }, "geometry": { "type": "Point", "coordinates": [ -84.867312, 33.920496 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13151.0, "county": "HENRY" }, "geometry": { "type": "Point", "coordinates": [ -84.154174, 33.452972 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13139.0, "county": "HALL" }, "geometry": { "type": "Point", "coordinates": [ -83.819766, 34.316798 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13097.0, "county": "DOUGLAS" }, "geometry": { "type": "Point", "coordinates": [ -84.767979, 33.701813 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13297.0, "county": "WALTON" }, "geometry": { "type": "Point", "coordinates": [ -83.733833, 33.781544 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13113.0, "county": "FAYETTE" }, "geometry": { "type": "Point", "coordinates": [ -84.494169, 33.4139 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13013.0, "county": "BARROW" }, "geometry": { "type": "Point", "coordinates": [ -83.712737, 33.993199 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13247.0, "county": "ROCKDALE" }, "geometry": { "type": "Point", "coordinates": [ -84.026652, 33.65421 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13217.0, "county": "NEWTON" }, "geometry": { "type": "Point", "coordinates": [ -83.850189, 33.555014 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13077.0, "county": "COWETA" }, "geometry": { "type": "Point", "coordinates": [ -84.763334, 33.353446 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13015.0, "county": "BARTOW" }, "geometry": { "type": "Point", "coordinates": [ -84.840525, 34.237806 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13045.0, "county": "CARROLL" }, "geometry": { "type": "Point", "coordinates": [ -85.079807, 33.582781 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13255.0, "county": "SPALDING" }, "geometry": { "type": "Point", "coordinates": [ -84.284165, 33.260886 ] } },
+{ "type": "Feature", "properties": { "FIPS": 13085.0, "county": "DAWSON" }, "geometry": { "type": "Point", "coordinates": [ -84.17054, 34.44427 ] } }
+]
+}

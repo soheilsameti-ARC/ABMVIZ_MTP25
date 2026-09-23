@@ -8,6 +8,7 @@
     var opacity = 0.8;
     var selectedColorRampIndex = 0;
     var showBoundaries = true;
+    var currentTileLayer;
     var palette = [
       [
         '#f7fbff', '#deebf7', '#c6dbef', '#9ecae1', '#6baed6',
@@ -155,9 +156,10 @@
       updateLegend(breaks);
 
       var map = L.map(containerID).setView([33.792902, -84.349885], 10);
-      L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-        maxZoom: 16
+      currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
       }).addTo(map);
       map.addControl(new L.Control.Fullscreen());
 
@@ -186,6 +188,9 @@
       if (hexLayer.getBounds && hexLayer.getBounds().isValid()) {
         map.fitBounds(hexLayer.getBounds());
       }
+      setTimeout(function() {
+        map.invalidateSize();
+      }, 200);
 
       function updateStyle() {
         hexLayer.setStyle(function(feature) {
@@ -213,6 +218,30 @@
       $('#hexagonBoundaries').on('change', function() {
         showBoundaries = this.checked;
         updateStyle();
+      });
+
+      $('#hexagonBaseMap').on('change', function() {
+        var value = this.value;
+        map.removeLayer(currentTileLayer);
+        if (value === 'osm') {
+          currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c']
+          });
+        } else if (value === 'esri') {
+          currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+            maxZoom: 16
+          });
+        } else if (value === 'carto') {
+          currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+          });
+        }
+        currentTileLayer.addTo(map);
       });
 
       var rampContainer = d3.select('#hexagonColorRamp');

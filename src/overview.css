@@ -1,0 +1,329 @@
+/* Overview tab: regional trip-volume summary across MTP24 horizon years */
+
+.overview-viz-root {
+  position: relative;
+  color-scheme: light;
+  --ov-page:        #ffffff;
+  --ov-surface:      #ffffff;
+  --ov-text-primary: #0b0b0b;
+  --ov-text-secondary: #52514e;
+  --ov-text-muted:   #898781;
+  --ov-gridline:     #e1e0d9;
+  --ov-baseline:     #c3c2b7;
+  --ov-border:       rgba(11, 11, 11, 0.10);
+
+  --ov-total:        #2a78d6;
+  --ov-auto:         #2a78d6;
+  --ov-transit:      #eb6834;
+  --ov-nonmotor:     #1baf7a;
+  --ov-schoolbus:    #eda100;
+
+  /* Categorical hues (validated adjacent-pair order) for the 5 horizon years. */
+  --ov-year-1:       #2a78d6;
+  --ov-year-2:       #eb6834;
+  --ov-year-3:       #1baf7a;
+  --ov-year-4:       #eda100;
+  --ov-year-5:       #e87ba4;
+
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5em 1em 3em;
+  background: var(--ov-page);
+}
+
+.overview-viz-root .overview-header {
+  text-align: center;
+  color: var(--ov-text-primary);
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 0.2em;
+}
+
+.overview-viz-root .overview-subhead {
+  text-align: center;
+  color: var(--ov-text-secondary);
+  font-size: 1.05em;
+  max-width: 900px;
+  margin: 0 auto 0.6em;
+}
+
+.overview-viz-root .overview-note {
+  text-align: center;
+  color: var(--ov-text-muted);
+  font-size: 0.85em;
+  max-width: 900px;
+  margin: 0 auto 1.6em;
+}
+
+/* KPI tiles */
+.overview-kpi-tile {
+  background: #f5f0d6;
+  border: 1px solid var(--ov-border);
+  border-radius: 6px;
+  padding: 0.9em 0.6em;
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+.overview-kpi-tile .overview-kpi-label {
+  color: var(--ov-text-secondary);
+  font-size: 0.8em;
+  line-height: 1.3em;
+  min-height: 2.6em;
+}
+
+.overview-kpi-tile .overview-kpi-value {
+  color: var(--ov-text-primary);
+  font-size: 1.7em;
+  font-weight: 600;
+  margin: 0.15em 0;
+}
+
+.overview-kpi-tile .overview-kpi-delta {
+  color: var(--ov-text-muted);
+  font-size: 0.8em;
+}
+
+/* Chart card */
+.overview-chart-card {
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-border);
+  border-radius: 6px;
+  padding: 1.2em 1.2em 0.6em;
+  margin-top: 1.2em;
+}
+
+.overview-chart-title {
+  color: var(--ov-text-primary);
+  font-size: 1.4em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.overview-chart-subtitle {
+  color: var(--ov-text-secondary);
+  font-size: 1.05em;
+  text-align: center;
+  max-width: 700px;
+  margin: 0.2em auto 0.8em;
+}
+
+.overview-chart-caveat {
+  color: var(--ov-text-muted);
+  font-size: 0.85em;
+  font-style: italic;
+  max-width: 700px;
+  margin: -0.3em auto 1em;
+  padding: 0.5em 0.8em;
+  border-left: 3px solid var(--ov-schoolbus);
+  background: rgba(237, 161, 0, 0.06);
+  border-radius: 0 4px 4px 0;
+  text-align: left;
+}
+
+.overview-chart-caveat > div + div {
+  margin-top: 0.5em;
+}
+
+.overview-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.2em;
+  margin-bottom: 0.8em;
+}
+
+.overview-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  color: var(--ov-text-secondary);
+  font-size: 1.05em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.overview-legend-item.dimmed {
+  opacity: 0.35;
+}
+
+.overview-legend-item svg {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.overview-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.overview-chart-svg .ov-gridline {
+  stroke: var(--ov-gridline);
+  stroke-width: 1px;
+}
+
+.overview-chart-svg .ov-baseline {
+  stroke: var(--ov-baseline);
+  stroke-width: 1px;
+}
+
+.overview-chart-svg .ov-axis-label {
+  fill: var(--ov-text-muted);
+  font-size: 11px;
+}
+
+.overview-chart-svg .ov-category-label {
+  fill: var(--ov-text-secondary);
+  font-size: 12px;
+}
+
+.overview-chart-svg .ov-total-label {
+  fill: var(--ov-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.overview-chart-svg .ov-hit-target {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.overview-chart-svg .ov-hit-target.hovered {
+  fill: var(--ov-text-primary);
+  opacity: 0.04;
+}
+
+.overview-chart-svg .ov-year-line.ov-line-hidden {
+  display: none;
+}
+
+.overview-chart-svg .ov-marker {
+  pointer-events: none;
+}
+
+.overview-chart-svg .ov-branch-divider {
+  stroke: var(--ov-baseline);
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+}
+
+.overview-chart-svg .ov-branch-label {
+  fill: var(--ov-text-muted);
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+/* Tooltip */
+.overview-tooltip {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-border);
+  border-radius: 4px;
+  padding: 0.6em 0.8em;
+  font-size: 0.8em;
+  color: var(--ov-text-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  min-width: 180px;
+}
+
+.overview-tooltip .ov-tooltip-title {
+  color: var(--ov-text-primary);
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+
+.overview-tooltip .ov-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0.15em 0;
+}
+
+.overview-tooltip .ov-tooltip-key {
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  flex: 0 0 auto;
+}
+
+.overview-tooltip .ov-tooltip-value {
+  color: var(--ov-text-primary);
+  font-weight: 600;
+}
+
+.overview-tooltip .ov-tooltip-label {
+  color: var(--ov-text-secondary);
+}
+
+.overview-tooltip .ov-tooltip-total {
+  border-top: 1px solid var(--ov-border);
+  margin-top: 0.4em;
+  padding-top: 0.4em;
+  color: var(--ov-text-primary);
+  font-weight: 600;
+}
+
+.overview-hourly-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  margin-top: 1em;
+}
+
+.overview-hourly-controls label {
+  color: var(--ov-text-secondary);
+  font-size: 1em;
+  font-weight: normal;
+  margin: 0;
+}
+
+.overview-hourly-controls select {
+  width: auto;
+  display: inline-block;
+}
+
+/* Table toggle + table */
+.overview-table-toggle {
+  text-align: center;
+  margin-top: 0.8em;
+}
+
+.overview-table-toggle label {
+  color: var(--ov-text-secondary);
+  font-size: 0.85em;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.overview-table-container {
+  margin-top: 1em;
+  margin-bottom: 2.5em;
+}
+
+.overview-table-container.hidden-table {
+  display: none;
+}
+
+.overview-table-container table {
+  color: var(--ov-text-secondary);
+}
+
+.overview-table-container th {
+  color: var(--ov-text-primary);
+}
+
+.overview-table-container td.ov-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-table-container th.ov-num,
+.overview-table-container td.ov-num {
+  text-align: right;
+}

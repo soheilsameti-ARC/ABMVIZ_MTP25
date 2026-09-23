@@ -59,7 +59,19 @@ var barchart_and_map = (function () {
 		"fillColor": "set by updateBubbles",
 		"fillOpacity": 1.0
 	};
-	$("#scenario-header").html("Scenario " + abmviz_utilities.GetURLParameter("scenario"));
+	// Load Header from scenarios.csv for scenario-header display
+	d3.csv("../data/scenarios.csv", function(error, data) {
+		if (error) throw error;
+		var currentScenario = abmviz_utilities.GetURLParameter("scenario");
+		var scenarioData = data.find(function(row) {
+			return row.Scenario === currentScenario;
+		});
+		if (scenarioData) {
+			$("#scenario-header").html(scenarioData.Header);
+		} else {
+			$("#scenario-header").html("Scenario " + currentScenario);
+		}
+	});
 	//start off chain of initialization by reading in the data
 	function readInDataCallback() {
 		createMap(function () {
@@ -443,13 +455,43 @@ var barchart_and_map = (function () {
 			});
 			//var stamenTileLayer = new L.StamenTileLayer("toner-lite"); //B&W stylized background map
 			//map.addLayer(stamenTileLayer);
-			var underlyingMapLayer = L.tileLayer('//stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png', {
-				updateWhenIdle: true,
-				unloadInvisibleFiles: true,
-				reuseTiles: true,
+			var currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+				maxZoom: 19,
 				opacity: 1.0
 			});
-			underlyingMapLayer.addTo(map);
+			currentTileLayer.addTo(map);
+			if ($('#mode-share-by-county-baseMap').length) {
+				$('#mode-share-by-county-baseMap').on('change', function () {
+					var val = $(this).val();
+					if (currentTileLayer) {
+						try { map.removeLayer(currentTileLayer); } catch (e) { }
+					}
+					if (val === 'osm') {
+						currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+							attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+							maxZoom: 19
+						});
+					} else if (val === 'esri') {
+						currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+							attribution: 'Tiles &copy; Esri',
+							maxZoom: 16
+						});
+					} else if (val === 'carto') {
+						currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+							attribution: '&copy; CartoDB',
+							subdomains: 'abcd',
+							maxZoom: 19
+						});
+					} else {
+						currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+							attribution: '&copy; OpenStreetMap contributors',
+							maxZoom: 19
+						});
+					}
+					currentTileLayer.addTo(map);
+				});
+			}
 			$.getJSON("../data/cb_2015_us_county_500k_GEORGIA.json", function (countyTiles) {
 				"use strict";
 				console.log("cb_2015_us_county_500k GEORGIA.json success");
